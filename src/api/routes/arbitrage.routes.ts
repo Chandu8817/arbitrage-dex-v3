@@ -78,28 +78,28 @@ router.post('/check', [
     );
     
     if (!opportunity) {
-      return res.status(404).json({ message: 'No arbitrage opportunity found' });
+     logger.info('No arbitrage opportunity found');
     }
 
     const savedOpportunity = new ArbitrageOpportunity({
-      tokenIn: opportunity.tokenIn,
-      tokenOut: opportunity.tokenOut,
-      amountIn: opportunity.amountIn,
-      expectedAmountOut: opportunity.amountOutSushi,
+      tokenIn: opportunity?.tokenIn,
+      tokenOut: opportunity?.tokenOut,
+      amountIn: opportunity?.amountIn,
+      expectedAmountOut: opportunity?.amountOutSushi,
       buyDex: 'UNISWAP_V3',
       sellDex: 'SUSHISWAP_V3',
       buyPrice: 0,
       sellPrice: 0,
       buyFee: 0.003,
       sellFee: 0.003,
-      gasCostEth: opportunity.gasCostEth,
-      gasCostUsd: opportunity.gasCostUsd,
-      grossProfit: opportunity.profit,
-      netProfit: opportunity.netProfit,
-      roi: opportunity.roi,
+      gasCostEth: opportunity?.gasCostEth,
+      gasCostUsd: opportunity?.gasCostUsd,
+      grossProfit: opportunity?.profit,
+      netProfit: opportunity?.netProfit,
+      roi: opportunity?.roi,
       status: 'simulated',
       metadata: {
-        routes: opportunity.routes,
+        routes: opportunity?.routes,
         timestamp: new Date().toISOString()
       }
     });

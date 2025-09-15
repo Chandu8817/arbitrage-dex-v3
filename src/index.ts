@@ -9,7 +9,7 @@ import logger, { morganStream } from './utils/logger';
 import db from './database/connection';
 import Web3Service from './services/Web3Service';
 import arbitrageRouter from './api/routes/arbitrage.routes';
-
+import ArbitrageOpportunity from './database/models/ArbitrageOpportunity';
 const app = express();
 const httpServer = createServer(app);
 
@@ -83,11 +83,38 @@ const startArbitrageMonitor = async () => {
       );
 
       if (opportunity) {
-        logger.info('Arbitrage opportunity found:', opportunity);
+        logger.info(`Arbitrage opportunity found - ROI: ${opportunity.roi.toFixed(2)}%`);
         
+        // Save to database
+        const dbOpportunity = new ArbitrageOpportunity({
+          tokenIn: opportunity.tokenIn,
+          tokenOut: opportunity.tokenOut,
+          buyDex: 'UNISWAP_V3',
+          sellDex: 'SUSHISWAP_V3',
+          buyPrice: opportunity.amountOutUni / opportunity.amountIn,
+          sellPrice: opportunity.amountOutSushi / opportunity.amountIn,
+          amountIn: opportunity.amountIn,
+          expectedAmountOut: opportunity.amountOutSushi,
+          buyFee: 0.003, 
+          sellFee: 0.003, 
+          gasCostEth: opportunity.gasCostEth,
+          gasCostUsd: opportunity.gasCostUsd,
+          grossProfit: opportunity.profit,
+          netProfit: opportunity.netProfit,
+          roi: opportunity.roi,
+          status: 'simulated',
+          metadata: {
+            routes: opportunity.routes,
+            isProfitable: opportunity.isProfitable
+          }
+        });
+
+        await dbOpportunity.save();
+        logger.info(`Opportunity saved to database with ID: ${dbOpportunity._id}`);
         
+        // Emit to connected clients
         io.emit('arbitrage_opportunity', opportunity);
-      }else{
+      } else {
         logger.info('No arbitrage opportunity found');
       }
 

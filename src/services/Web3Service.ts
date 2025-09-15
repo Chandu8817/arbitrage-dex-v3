@@ -159,47 +159,53 @@ class Web3Service {
     amountIn: string
   ) {
     try {
-      // Get prices from both DEXs
-      const [uniTrade, sushiTrade] = await Promise.all([
-        this.findBestTrade(tokenInAddress, tokenOutAddress, amountIn, 'UNISWAP_V3'),
-        this.findBestTrade(tokenOutAddress, tokenInAddress, amountIn, 'SUSHISWAP_V3'),
-      ]);
     
-
-      const amountOutUni = parseFloat(uniTrade.amountOut);
-      const amountOutSushi = parseFloat(sushiTrade.amountOut);
+      const wethToUsdc = await this.findBestTrade(
+        tokenInAddress, // WETH
+        tokenOutAddress, // USDC
+        '1', // 1 WETH
+        'UNISWAP_V3'
+      );
+      
+  
+      const usdcToWeth = await this.findBestTrade(
+        tokenOutAddress, 
+        tokenInAddress, 
+        wethToUsdc.amountOut, 
+        'SUSHISWAP_V3'
+      );
+      
+      const initialAmount = parseFloat(amountIn); 
+      const finalAmount = parseFloat(usdcToWeth.amountOut); 
       
       const gasPrice = await this.getAdjustedGasPrice();
       const gasCostEth = parseFloat(ethers.utils.formatEther(
-        gasPrice.mul(ethers.BigNumber.from(uniTrade.gasEstimate).add(sushiTrade.gasEstimate))
+        gasPrice.mul(ethers.BigNumber.from(wethToUsdc.gasEstimate).add(usdcToWeth.gasEstimate))
       ));
 
       const ethPriceUsd = 4000;  // just for example we can use oracle for price
       const gasCostUsd = gasCostEth * ethPriceUsd;
 
-      const profit = amountOutSushi - parseFloat(amountIn);
-      const roi = (profit / parseFloat(amountIn)) * 100;
+      const profit = finalAmount - initialAmount;
+      const roi = (profit / initialAmount) * 100;
 
-      if (roi > config.minProfitThreshold / 100) {
-        return {
-          tokenIn: tokenInAddress,
-          tokenOut: tokenOutAddress,
-          amountIn: parseFloat(amountIn),
-          amountOutUni,
-          amountOutSushi,
-          profit,
-          roi,
-          gasCostEth,
-          gasCostUsd,
-          netProfit: profit - gasCostUsd,
-          routes: {
-            uni: uniTrade.route,
-            sushi: sushiTrade.route,
-          },
-        };
-      }
-
-      return null;
+      return {
+        tokenIn: tokenInAddress,
+        tokenOut: tokenOutAddress,
+        amountIn: initialAmount,
+        amountOutUni: parseFloat(wethToUsdc.amountOut),
+        amountOutSushi: finalAmount,
+        profit,
+        roi,
+        gasCostEth,
+        gasCostUsd,
+        netProfit: (profit * ethPriceUsd) - gasCostUsd,
+        routes: {
+          uni: wethToUsdc.route,
+          sushi: usdcToWeth.route,
+        },
+        isProfitable: roi > (config.minProfitThreshold / 100)
+      };
     } catch (error) {
       logger.error(`Error finding arbitrage opportunity: ${error}`);
       return null;
