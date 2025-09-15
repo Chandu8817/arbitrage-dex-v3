@@ -22,8 +22,8 @@ A Node.js TypeScript application that identifies arbitrage opportunities between
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/defi-arbitrage-bot.git
-   cd defi-arbitrage-bot
+   git clone https://github.com/chandu8817/arbitrage-dex-v3.git
+   cd arbitrage-dex-v3
    ```
 
 2. Install dependencies:
